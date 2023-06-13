@@ -1,0 +1,123 @@
+<style>
+  .container {
+  display: flex;
+  justify-content: space-between;
+  padding: 1em;
+  box-sizing: border-box;
+  width: 800px;
+}
+
+.container div {
+  width: 100px;
+  height: 2em;
+}
+</style>
+<div class="container">
+  <div><input type="text" id="search-input" placeholder="Search">
+    <ul id="zone-list"></ul></div>
+  <div>
+    <section id="selected-section">
+      <h2>Selected zones:</h2>
+      <ul id="selected-zones"></ul>
+      <button id="save-button">Save</button>
+    </section>
+  </div>
+</div>
+
+<script>
+  const searchInput = document.getElementById('search-input');
+  const zoneList = document.getElementById('zone-list');
+  let zones = [];
+
+  function loadData() {
+    fetch('dataBase.json')
+      .then(response => response.json())
+      .then(data => {
+        zones = data;
+        renderZoneList(zones);
+      })
+      .catch(error => console.error(error));
+  }
+
+  function renderZoneList(zones) {
+    zoneList.innerHTML = '';
+    zones.forEach(zone => {
+      const li = document.createElement('li');
+      li.textContent = zone.name;
+      zoneList.appendChild(li);
+    });
+  }
+
+  searchInput.addEventListener('input', (event) => {
+    const searchText = event.target.value.toLowerCase();
+    const filteredZones = zones.filter(zone => zone.name.toLowerCase().startsWith(searchText));
+    renderZoneList(filteredZones);
+  });
+
+  loadData();
+
+  const selectedZones = document.getElementById('selected-zones');
+  const selected = [];
+
+  function selectZone(zone) {
+    if (selected.includes(zone)) {
+      return;
+    }
+    selected.push(zone);
+    console.log(zone);
+    renderSelectedZones(selected);
+  }
+
+  function renderSelectedZones(selected) {
+    selectedZones.innerHTML = '';
+    selected.forEach(zone => {
+      const li = document.createElement('li');
+      li.textContent = zone.name;
+      li.addEventListener('click', () => deselectZone(zone));
+      selectedZones.appendChild(li);
+    });
+  }
+
+  function deselectZone(zone) {
+    const index = selected.indexOf(zone);
+    if (index > -1) {
+      selected.splice(index, 1);
+      renderSelectedZones(selected);
+      renderZoneList(zones);
+    }
+  }
+
+  zoneList.addEventListener('click', (event) => {
+    const clickedZoneName = event.target.textContent;
+    const clickedZone = zones.find(zone => zone.name === clickedZoneName);
+    if (clickedZone) {
+      selectZone(clickedZone);
+    }
+  });
+
+  const selectedSection = document.getElementById('selected-section');
+  const saveButton = document.getElementById('save-button');
+
+  saveButton.addEventListener('click', () => {
+    saveSelected(selected);
+  });
+
+  function saveSelected(selected) {
+    const expirationDate = new Date();
+    expirationDate.setDate(expirationDate.getDate() + 7); 
+    document.cookie = `selected=${JSON.stringify(selected)};expires=${expirationDate.toUTCString()}`;
+    alert('Selected zones are saved!');
+  }
+
+  function loadSelected() {
+    const cookies = document.cookie.split(';');
+    const selectedCookie = cookies.find(cookie => cookie.startsWith('selected='));
+    if (selectedCookie) {
+      const selectedJson = selectedCookie.split('=')[1];
+      const selectedFromCookie = JSON.parse(selectedJson);
+      renderSelectedZones(selectedFromCookie);
+    }
+  }
+
+  loadSelected();
+</script>
